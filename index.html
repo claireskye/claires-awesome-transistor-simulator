@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claire's Awesome Transistor Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: #131a2a;
+            --panel-border: #23304a;
+            --accent-cyan: #3b82f6;
+            --accent-pink: #ec4899;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --n-color: rgba(59, 130, 246, 0.08);
+            --p-color: rgba(236, 72, 153, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .sim-container {
+            width: 100%;
+            max-width: 1400px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 8px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .controls-panel, .info-panel {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .type-selector {
+            display: flex;
+            background: #0b0f19;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .type-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .type-btn.active {
+            background: var(--accent-cyan);
+            color: #fff;
+        }
+
+        .type-btn.active.pnp-mode {
+            background: var(--accent-pink);
+            color: #fff;
+        }
+
+        .slider-container {
+            background: #0b0f19;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 1.05rem;
+        }
+
+        .slider-title {
+            font-weight: 600;
+        }
+
+        .slider-val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+
+        .pnp-text .slider-val {
+            color: var(--accent-pink);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #1e293b;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .visualization-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: #080b12;
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 21 / 8; 
+        }
+
+        /* Status and Theory Cards */
+        .cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-card, .theory-card {
+            background: #0b0f19;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .status-card {
+            border-top: 5px solid var(--accent-cyan);
+            min-height: 180px;
+        }
+
+        .status-card.pnp-status {
+            border-top-color: var(--accent-pink);
+        }
+
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .status-desc, .theory-desc {
+            font-size: 1rem;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .theory-card h3 {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .theory-card p {
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #0b0f19;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+
+        .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dot.electron { background: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+        .dot.hole { background: var(--accent-pink); box-shadow: 0 0 8px var(--accent-pink); }
+    </style>
+</head>
+<body>
+
+<div class="sim-container">
+    <header>
+        <h1>Claire's Awesome Transistor Simulator</h1>
+        <p>A visual breakdown of how back-to-back PN junctions control electrical flow.</p>
+    </header>
+
+    <div class="main-layout">
+        <div class="controls-panel">
+            
+            <div class="control-group">
+                <label>1. Pick your layout</label>
+                <div class="type-selector">
+                    <button class="type-btn active" id="btn-npn" onclick="setType('NPN')">NPN</button>
+                    <button class="type-btn" id="btn-pnp" onclick="setType('PNP')">PNP</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>2. Set Terminal Voltages</label>
+                
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-title">Emitter (V<sub>E</sub>)</span>
+                        <span class="slider-val" id="val-ve">0.0V</span>
+                    </div>
+                    <input type="range" id="slide-ve" min="-5" max="5" step="0.1" value="0" oninput="updateVoltages()">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-title">Base (V<sub>B</sub>)</span>
+                        <span class="slider-val" id="val-vb">0.0V</span>
+                    </div>
+                    <input type="range" id="slide-vb" min="-5" max="5" step="0.1" value="0.8" oninput="updateVoltages()">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-title">Collector (V<sub>C</sub>)</span>
+                        <span class="slider-val" id="val-vc">0.0V</span>
+                    </div>
+                    <input type="range" id="slide-vc" min="-5" max="5" step="0.1" value="4.0" oninput="updateVoltages()">
+                </div>
+            </div>
+
+            <div class="legend">
+                <label>Particle Guide:</label>
+                <div class="legend-item">
+                    <div class="dot electron"></div>
+                    <span><b>Electrons (-):</b> Naturally pulled toward higher/positive voltages.</span>
+                </div>
+                <div class="legend-item">
+                    <div class="dot hole"></div>
+                    <span><b>Holes (+):</b> Naturally pulled toward lower/negative voltages.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="visualization-panel">
+            <div class="canvas-wrapper">
+                <canvas id="simCanvas" width="1050" height="400"></canvas>
+            </div>
+
+            <div class="cards-container">
+                <div class="status-card" id="statusCard">
+                    <div class="status-title" id="statusTitle">Checking physics...</div>
+                    <div class="status-desc" id="statusDesc">Move the sliders to see how the junctions react!</div>
+                </div>
+
+                <div class="theory-card">
+                    <h3>Wait, how is this just two PN-Junctions?</h3>
+                    <div class="theory-desc">
+                        <p>A BJT transistor is physically just two diodes placed back-to-back, sharing a microscopic middle layer (the Base). Normally, back-to-back diodes block current in both directions.</p>
+                        <p>But because the Base is so incredibly thin, when the first junction (Emitter-Base) is opened, it shoots particles across the Base so fast they fall into the second junction's electric field and get violently swept away before they can stop!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let type = 'NPN';
+    let vE = 0.0, vB = 0.8, vC = 4.0;
+    let particles = [];
+    const maxParticles = 350;
+
+    // Boundary map for the visual layout
+    const geom = {
+        w: 1050,
+        h: 400,
+        b1: 350, // Emitter-Base junction
+        b2: 500  // Base-Collector junction
+    };
+
+    class Particle {
+        constructor() {
+            this.init();
+        }
+
+        init() {
+            // Distribute across regions: Emitter gets the most to source the flow
+            let r = Math.random();
+            let zone = r < 0.5 ? 'E' : (r < 0.7 ? 'B' : 'C');
+            
+            if (type === 'NPN') {
+                this.type = (zone === 'B') ? 
+                    (Math.random() < 0.8 ? 'hole' : 'electron') : 
+                    (Math.random() < 0.95 ? 'electron' : 'hole');
+            } else { // PNP
+                this.type = (zone === 'B') ? 
+                    (Math.random() < 0.8 ? 'electron' : 'hole') : 
+                    (Math.random() < 0.95 ? 'hole' : 'electron');
+            }
+
+            if (zone === 'E') this.x = Math.random() * geom.b1;
+            else if (zone === 'B') this.x = geom.b1 + Math.random() * (geom.b2 - geom.b1);
+            else this.x = geom.b2 + Math.random() * (geom.w - geom.b2);
+
+            this.y = Math.random() * geom.h;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = (Math.random() - 0.5) * 2;
+            this.size = this.type === 'electron' ? 3.5 : 4.5;
+        }
+
+        update(f_EB_e, f_BC_e, f_EB_h, f_BC_h) {
+            // 1. Lattice Scattering (Friction/damping makes them drift rather than accelerate infinitely)
+            this.vx *= 0.88;
+            this.vy *= 0.88;
+
+            // 2. Figure out which force gradients apply to this specific particle
+            let f_EB = this.type === 'electron' ? f_EB_e : f_EB_h;
+            let f_BC = this.type === 'electron' ? f_BC_e : f_BC_h;
+
+            let currentDrift = 0;
+
+            // Determine where the particle is to apply the right junction force
+            if (this.x < geom.b1) {
+                // In the Emitter: primarily feels the E-B junction field
+                currentDrift = f_EB;
+            } else if (this.x > geom.b2) {
+                // In the Collector: primarily feels the B-C junction field
+                currentDrift = f_BC;
+            } else {
+                // In the Base: It's caught between both fields. We linearly interpolate the force.
+                let t = (this.x - geom.b1) / (geom.b2 - geom.b1);
+                currentDrift = f_EB * (1 - t) + f_BC * t;
+            }
+
+            // 3. Apply the electric field force
+            this.vx += currentDrift * 0.35;
+
+            // 4. Add Thermal Noise (Jitter)
+            this.vx += (Math.random() - 0.5) * 1.5;
+            this.vy += (Math.random() - 0.5) * 1.5;
+
+            // Move the particle
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Wrap around the screen to simulate a continuous closed circuit loop
+            if (this.x < 0) this.x = geom.w;
+            if (this.x > geom.w) this.x = 0;
+
+            // Bounce off top/bottom
+            if (this.y < 0 || this.y > geom.h) {
+                this.vy = -this.vy;
+                this.y = Math.max(0, Math.min(geom.h, this.y));
+            }
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            if (this.type === 'electron') {
+                ctx.fillStyle = '#3b82f6';
+                ctx.shadowColor = '#3b82f6';
+            } else {
+                ctx.fillStyle = '#ec4899';
+                ctx.shadowColor = '#ec4899';
+            }
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    function initParticles() {
+        particles = [];
+        for (let i = 0; i < maxParticles; i++) particles.push(new Particle());
+    }
+
+    function setType(newType) {
+        type = newType;
+        document.getElementById('btn-npn').classList.toggle('active', type === 'NPN');
+        document.getElementById('btn-pnp').classList.toggle('active', type === 'PNP');
+        
+        const indicators = document.querySelectorAll('.slider-val');
+        indicators.forEach(el => {
+            el.style.color = type === 'PNP' ? 'var(--accent-pink)' : 'var(--accent-cyan)';
+        });
+        
+        initParticles();
+        updateVoltages();
+    }
+
+    function updateVoltages() {
+        vE = parseFloat(document.getElementById('slide-ve').value);
+        vB = parseFloat(document.getElementById('slide-vb').value);
+        vC = parseFloat(document.getElementById('slide-vc').value);
+
+        const formatV = (v) => (v > 0 ? '+' : '') + v.toFixed(1) + 'V';
+        document.getElementById('val-ve').innerText = formatV(vE);
+        document.getElementById('val-vb').innerText = formatV(vB);
+        document.getElementById('val-vc').innerText = formatV(vC);
+    }
+
+    function computePhysics() {
+        // Calculate the true voltage difference across each junction
+        // Positive difference means forward biased for NPN, negative means reverse.
+        let vBE = vB - vE; 
+        let vBC = vB - vC;
+        
+        if (type === 'PNP') {
+            vBE = vE - vB;
+            vBC = vC - vB;
+        }
+
+        // Setup the UI text
+        let stateTitle = "";
+        let stateDesc = "";
+        const card = document.getElementById('statusCard');
+        card.classList.toggle('pnp-status', type === 'PNP');
+
+        const threshold = 0.5; // Voltage needed to open a silicon PN junction
+
+        // Figure out what the transistor is doing based on the junctions
+        if (vBE <= threshold && vBC <= threshold) {
+            stateTitle = "🛑 Cutoff Mode (Fully OFF)";
+            stateDesc = "Both the Emitter-Base and Base-Collector PN-junctions are reverse-biased (or lack enough forward voltage). The depletion barriers act like thick walls, blocking all flow. The switch is OFF.";
+        } 
+        else if (vBE > threshold && vBC <= threshold) {
+            stateTitle = "🟢 Active Mode (Amplifier)";
+            stateDesc = "The Emitter-Base junction is forward-biased, acting like an open gate. It shoots carriers into the Base. The Base-Collector junction is reverse-biased, which normally blocks flow, but its high voltage violently yanks those incoming carriers across before they can stop!";
+        } 
+        else if (vBE > threshold && vBC > threshold) {
+            stateTitle = "🔥 Saturation Mode (Fully ON)";
+            stateDesc = "Both PN-junctions are forward-biased! Both the Emitter and the Collector are dumping massive amounts of carriers into the thin Base layer. The transistor is overwhelmed, acting like a closed wire letting maximum current flow.";
+        } 
+        else if (vBE <= threshold && vBC > threshold) {
+            stateTitle = "🙃 Reverse Active (Backwards)";
+            stateDesc = "You are driving it backwards! The Base-Collector junction is acting as the emitter, shooting carriers towards the actual Emitter. It works, but very poorly because the Collector isn't physically designed for this.";
+        }
+
+        document.getElementById('statusTitle').innerText = stateTitle;
+        document.getElementById('statusDesc').innerText = stateDesc;
+
+        // --- Calculate forces pushing to the RIGHT (+x axis) ---
+        // Electrons want to go from lower voltage to higher voltage.
+        let f_EB_e = vB - vE; 
+        let f_BC_e = vC - vB;
+        
+        // Holes want to go from higher voltage to lower voltage.
+        let f_EB_h = vE - vB;
+        let f_BC_h = vB - vC;
+
+        return { f_EB_e, f_BC_e, f_EB_h, f_BC_h };
+    }
+
+    function drawBackground() {
+        const eType = type === 'NPN' ? 'N-type (Electrons)' : 'P-type (Holes)';
+        const bType = type === 'NPN' ? 'P-type (Thin Gate)' : 'N-type (Thin Gate)';
+        
+        // Emitter Region
+        ctx.fillStyle = type === 'NPN' ? 'var(--n-color)' : 'var(--p-color)';
+        ctx.fillRect(0, 0, geom.b1, geom.h);
+        
+        // Base Region
+        ctx.fillStyle = type === 'NPN' ? 'var(--p-color)' : 'var(--n-color)';
+        ctx.fillRect(geom.b1, 0, geom.b2 - geom.b1, geom.h);
+        
+        // Collector Region
+        ctx.fillStyle = type === 'NPN' ? 'var(--n-color)' : 'var(--p-color)';
+        ctx.fillRect(geom.b2, 0, geom.w - geom.b2, geom.h);
+
+        // Junction Lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(geom.b1, 0); ctx.lineTo(geom.b1, geom.h);
+        ctx.moveTo(geom.b2, 0); ctx.lineTo(geom.b2, geom.h);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Labels
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(`EMITTER`, 30, 45);
+        ctx.fillText(`BASE`, geom.b1 + 20, 45);
+        ctx.fillText(`COLLECTOR`, geom.b2 + 30, 45);
+
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fillText(`(${eType})`, 30, 65);
+        ctx.fillText(`(${bType})`, geom.b1 + 20, 65);
+        ctx.fillText(`(${eType})`, geom.b2 + 30, 65);
+
+        // Live Voltages
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(`${vE > 0 ? '+' : ''}${vE.toFixed(1)}V`, 30, geom.h - 30);
+        ctx.fillText(`${vB > 0 ? '+' : ''}${vB.toFixed(1)}V`, geom.b1 + 20, geom.h - 30);
+        ctx.fillText(`${vC > 0 ? '+' : ''}${vC.toFixed(1)}V`, geom.b2 + 30, geom.h - 30);
+    }
+
+    function loop() {
+        // Redraw with slight transparency for motion trails
+        ctx.fillStyle = 'rgba(8, 11, 18, 0.35)';
+        ctx.fillRect(0, 0, geom.w, geom.h);
+
+        drawBackground();
+        const forces = computePhysics();
+
+        particles.forEach(p => {
+            p.update(forces.f_EB_e, forces.f_BC_e, forces.f_EB_h, forces.f_BC_h);
+            p.draw();
+        });
+
+        requestAnimationFrame(loop);
+    }
+
+    initParticles();
+    updateVoltages();
+    loop();
+</script>
+
+</body>
+</html>
